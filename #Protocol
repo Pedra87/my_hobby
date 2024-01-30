@@ -1,0 +1,22 @@
+#Protocol
+sbatch to submit a batch to the batch system
+activate the conda environment 
+#sample collection
+
+#extraction
+DNA/RNA/Proteins
+
+#library preparation
+PCR(amplicons generated)& sequencing(raw reads i.e short reads generated in form of a fasta file)
+
+#Quality control
+tools used:
+1.fastqc
+checks quality of the reads
+2.fastp
+trims the reads based on the set phred score limit (usually less han 20) and also checks quality of the reads.
+
+#Genome assembly
+##command used in the megahit tool
+this will generate contigs (consensus region)
+
