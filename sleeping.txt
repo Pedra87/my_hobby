@@ -243,7 +243,12 @@ done by estimating contamination
 ##command cd V_jascida_genomes
 anvi-estimate-genome-completeness -e external-genomes.txt
 6.visual
-
+in anvi interactive
+##command anvi-interactive -c V_jascida_52.db \
+                 -p V_jascida_52/PROFILE.db
+7. now we split the bins
+first, save the bins you wants to keep from the anvio display(go to bins, give it a name and save as default)
+to split use the ##command
 
 
 
