@@ -330,9 +330,14 @@ that is;the ratio of Ribo-Seq levels to RNA-seq levels
 study design
 library preparation
 analysis
-study design
+1.1 study design
 ensure that,
 have a cvontrol
 observable changes
 phenotypic differences
-you know what the cotrol is based on
+you know what the control is based on
+1.2
+image insertion in markdown
+
+![image addition to documents](./Resources/taxonomy.png)
+

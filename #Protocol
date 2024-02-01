@@ -20,3 +20,5 @@ trims the reads based on the set phred score limit (usually less han 20) and als
 ##command used in the megahit tool
 this will generate contigs (consensus region)
 
+
+
