@@ -358,7 +358,12 @@ have a cvontrol
 observable changes
 phenotypic differences
 you know what the control is based on
-1.2
+1.2 obtaining data for RNAseq
+Find the accession number of the data you want to download, mentioned in the published paper.
+Go to the NCBI website and search for the accession number.
+Download the data from SRA database.
+Find the SRR numbers of the data you want to download. and run the following commands:
+
 image insertion in markdown
 
 ![image addition to documents](./Resources/taxonomy.png)
