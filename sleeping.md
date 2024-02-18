@@ -227,10 +227,15 @@ JSpeciesWs
  #pangenomics
  1.downloaded 52 genomes (as fasta files) of Vibrio jasicida strains using Anvio
 2.created contig databases for sample
-3.visualised the contigs using ##command module load gcc12-env/12.1.0
+3.visualised the contigs using ##command
+ block of code:
+'''sh 
+module load gcc12-env/12.1.0
 module load miniconda3/4.12.0
 conda activate anvio-8
 anvi-display-contigs-stats /path/to.your/databases/*db
+'''
+
 4.created external genomes
 this was done using the  contigs databases for ecah sample created.
 this combines tzhe details on how to access the contigs databases when running ANVIO
