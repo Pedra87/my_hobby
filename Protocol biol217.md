@@ -104,19 +104,19 @@ first convert the contigs (sam file format) to bam file format
 module load samtools
 samtools view -bS ? > bam_file.bam
 ```
-then generate the data base
+then generate the database
 ```sh
 anvi-gen-contigs-database -f contigs.anvio.fa -o contigs.db -n 'biol217'
 ```
-information etailed in the contigs database generated;
+information entailed in the contigs database generated;
 Compute k-mer frequencies for each contig
 Soft-split contigs longer than 20,000 bp into smaller ones
-Open reading frames using Prodigal, the bacterial and archaeal gene finding program
+Open reading frames using Prodigal, the bacterial and archaeal gene-finding program
 
 5. HMM search on contigs
 Hidden Markov Model
 searches for specific genes with a known function in a larger dataset
-it identifies hits (bacterial single copy core gene collections) among your genes to the collections.
+it identifies hits (bacterial single-copy core gene collections) among your genes to the collections.
 ```sh
 anvi-run-hmms -c contigs.db
 ```
@@ -132,178 +132,282 @@ anvi-display-contigs-stats contigs.db
 ```
 
 7. Binning with ANVI'O
-   7.1 sorting and indexing bam files
+   7.1 Preparation of contig data for binning.
+   7.1.1 sorting and indexing bam files
    ```sh
    for i in *.bam; do anvi-init-bam $i -o "$i".sorted.bam; done
    ```
-   7.2 creating  anvio profiles
+   7.1.2 creating  anvio profiles
    this profile stores sample-specific information about the contigs
    therefore gives  properties for each contig in a single sample, based on mapping results.
-    in a loop
     ```sh
-    mkdir /PATH/TO/profiling/
-for i in `ls *.sorted.bam | cut -d "." -f 1`; do anvi-profile -i "$i".bam.sorted.bam -c contigs.db -o /PATH/TO/profiling/”$i”; done
-  ```
--i sorted and indexed bam file, used as input
--c contig.db file
---output-dir give your output directory a name
-7.3 ANVI'O Profile merging.
-merge the profiles into one (that is the 3 profiles you have for your 3 samples must be merged into 1 whole anvio profile)
-this is done by overlapping all the profiles alongside the contigs database
-4.Binning
-different tools can be used:
-1.1 Metabat2
-1.2 binsanity
-1.3 MaxBin2
-#Using metabat2
-to cluster the merged profiles against the contigs database
-using the ##command anvi-cluster-contigs -p ? -c ? -C METABAT --driver metabat2 --just-do-it --log-file log-metabat2
-1. Resuts:
-3 archea bins (97.37%, 59.96% & 43.65%)
+    anvi-profile -i YOUR_SORTED.bam -c contigs.db --output-dir OUTPUT_DIR
+    ```
+    7.1.3 ANVI'O Profile merging.
+   the profiles are merged into one (that is; the 3 profiles you have for your 3 samples must be merged into 1 whole Anvio profile)
+   this is done by overlapping all the profiles alongside the contigs database
+   ```sh
+   anvi-merge /PATH/TO/SAMPLE1/PROFILE.db /PATH/TO/SAMPLE2/PROFILE.db /PATH/TO/SAMPLE3/PROFILE.db -o /PATH/TO/merged_profiles -c /PATH/TO/contigs.db --enforce-hierarchical-clustering
+   ```
+   7.2 Binning
+   clustering of contigs together to form MAGs-Metagenome Assembled Genomes
+   different tools can be used: Metabat2, binsanity, MaxBin2 among others.
+   7.2.1 Binning with MetaBat2
+    ```sh
+   anvi-cluster-contigs -p /PATH/TO/merged_profiles/PROFILE.db -c /PATH/TO/contigs.db -C METABAT --driver metabat2 --just-do-it --log-file log-metabat2
+    anvi-summarize -p /PATH/TO/merged_profiles/PROFILE.db -c /PATH/TO/contigs.db -o SUMMARY_METABAT -C METABAT
+      ```
+    7.2.2 Binning with MaxBin2
+   ```sh
+   anvi-cluster-contigs -p /PATH/TO/merged_profiles/PROFILE.db -c /PATH/TO/contigs.db -C MAXBIN2 --driver maxbin2 --just-do-it --log-file log-maxbin2
+   anvi-summarize -p /PATH/TO/merged_profiles/PROFILE.db -c /PATH/TO/contigs.db -o SUMMARY_MAXBIN2 -C MAXBIN2
+   ```
+   7.3 MAG quality estimation & visualization
+   estimates genome completeness and contamination levels.
+   completeness: high quality-above 90% and medium quality 50-90%
+   used bins from the MetaBat2 binning strategy
+   estimation
+   ```sh
+   anvi-estimate-genome-completeness -c /PATH/TO/contigs.db -p /PATH/TO/merged_profiles/PROFILE.db -C METABAT
+   ```
+   visualization
+   ```sh
+   module load gcc12-env/12.1.0
+   module load miniconda3/4.12.0
+   conda activate anvio-8
+   anvi-interactive -p /PATH/TO/merged_profiles/PROFILE.db -c /PATH/TO/contigs.db -C YOUR_COLLECTION
+    ```
+   7.4 Bin refinement
+   can be done using;
+   multiple binners
+   reassembly (assemble the clean reads and the MAGs)
+   chimera (different contigs binned together) detection with GUNC tool.
+   first, create a folder called SUMMARY containing all summary files of the archaea bins created.
+   ```sh
+   module load gcc12-env/12.1.0
+   module load miniconda3/4.12.0
+   conda activate anvio-8
+   anvi-summarize -p ? -c ? --list-collections
+   anvi-summarize -c ? -p ? -C ? -o ? --just-do-it
+    ```
+   7.4.1 Chimera detection
+   activate the gunc environment
+     ```sh
+   module load gcc12-env/12.1.0
+   module load miniconda3/4.12.0
+   conda activate gunc
+   ```
+     then run the command
+   ```sh
+   cd /PATH/TO/ARCHAEA_BIN_REFINEMENT
+   mkdir GUNC
+   for i in *.fa; do gunc run -i "$i" -r /work_beegfs/sunam###/Databases/gunc_db_progenomes2.1.dmnd --out_dir GUNC/"$i" --threads 10 --detailed_output; done
+   ```
+   then.........
+   Run a QC on the MAGs again
+   7.4.2 Manual bin refinement
+   As large metagenome assemblies can result in hundreds of bins, pre-select the better ones for manual refinement, e.g. > 70% completeness.
+   Before you start, make a copy/backup of your unrefined bins to avoid them from being overwritten.
+   Use anvi refine to work on your bins manually.
+   ```sh
+   anvi-refine -c /PATH/TO/contigs.db -C METABAT -p /PATH/TO/merged_profiles/PROFILE.db --bin-id Bin_METABAT__##
+   ```
+   You can now sort your bins by GC content, by coverage or both.
+   For refinement it is easier to use the clustering based on only differential coverage, and then only based on sequence composition in search for outliers.
+   The interface allows you to categorize contigs into separate bins (selection tool). Unhighlighted contigs are removed when the data is saved.
+   You can also evaluate taxonomy and duplicate single copy core genes.
+   You can also remove contigs.
+   8. Classification of MAGs
+      based on Average Nucleotide Identity (ANI) and Alignment fraction once the MAGs are aligned with referece sequnces from a genome database
+      ANI: 95% and above- same species with reference organism
+           less then 95% only the genus name is taken
+           99% and above genus, species and strain name are taken
+      Alignment fraction of 70% is the minimum considered for ANI to be calculated
+      ```sh
+      anvi-estimate-scg-taxonomy -c /PATH/TO/contigs.db -p /PATH/TO/profile.db --metagenome-mode --compute-scg-coverages --update-profile-db-with-taxonomy
+      anvi-estimate-scg-taxonomy -c /PATH/TO/contigs.db -p /PATH/TO/profile.db --metagenome-mode --compute-scg-coverages --update-profile-db-with-taxonomy > temp.txt
+      anvi-summarize -p /PATH/TO/merged_profiles/PROFILE.db -c /PATH/TO/contigs.db --metagenome-mode -o /PATH/TO/SUMMARY_METABAT2 -C METABAT2
+      ```
+      GENOMICS (pipeline and commands)
+      1. Quality control
+      1.1 Short reads (fast qc & fatsp tool)
+         ```sh
+         #!/bin/bash
+         #SBATCH --nodes=1
+         #SBATCH --cpus-per-task=32
+         #SBATCH --mem=128G
+         #SBATCH --time=5:00:00
+         #SBATCH --job-name=01_fastqc
+         #SBATCH --output=01_fastqc.out
+         #SBATCH --error=01_fastqc.err
+         #SBATCH --partition=base
+         #SBATCH --reservation=biol217
+         module load gcc12-env/12.1.0
+         module load miniconda3/4.12.0
+         module load micromamba/1.4.2
+         micromamba activate 01_short_reads_qc
+         ## 1.1 fastqc raw reads
+         # mkdir -p $WORK/genomics/1_short_reads_qc/1_fastqc_raw
+         # for i in *.gz; do fastqc $i -o $WORK/genomics/1_short_reads_qc/1_fastqc_raw -t 32; done
+         ## 1.2 fastp
+         mkdir -p $WORK/genomics/1_short_reads_qc/2_cleaned_reads
+         fastp -i $WORK/genomics/0_raw_reads/short_reads/241155E_R1.fastq.gz \
+         -I $WORK/genomics/0_raw_reads/short_reads/241155E_R2.fastq.gz \
+         -R $WORK/genomics/1_short_reads_qc/2_cleaned_reads/fastp_report \
+         -h $WORK/genomics/1_short_reads_qc/2_cleaned_reads/report.html \
+         -o $WORK/genomics/1_short_reads_qc/2_cleaned_reads/241155E_R1_clean.fastq.gz \
+         -O $WORK/genomics/1_short_reads_qc/2_cleaned_reads/241155E_R2_clean.fastq.gz -t 6 -q 25
 
-anvi-summarize -p /PATH/TO/merged_profiles/? -c ? -o SUMMARY_METABAT -C ?
+         jobinfo
+         ```
+         Check the quality again with fastqc
+         1.2 long reads
+         Nanoplot tool - checks quality
+          ```sh
+          micromamba activate 02_long_reads_qc
 
-#Using MaxBin2
-using the ##command anvi-cluster-contigs -p ? -c ? -C MAXBIN2 --driver maxbin2 --just-do-it --log-file log-maxbin2
+          cd $WORK/genomics/0_raw_reads/long_reads/
+          NanoPlot --fastq $file -o $output_dir -t 6 --maxlength 40000 --minlength 1000 --plots kde --format png --N50 --dpi 300 --store --raw --tsv_stats --info_in_report
+          ```
+          filtlong tool- checks quality and trims
+         ```sh
+         filtlong --min_length 1000 --keep_percent 90 $file1 | gzip > sample1_cleaned_filtlong.fastq.gz
+         mv sample1_cleaned_filtlong.fastq.gz $output_dir
+         ```
+         Check quality again with Nanoplot
+         2. Hybrid assembly (Unicycler tool)
+            Unicycler tool can clean the reads too if not cleaned prior
+            assembles the clean Short reads with clean long reads
+            ```sh
+            micromamba activate 03_unicycler
+            unicycler -1 $short_read1 -2 $short_read2 -l $long_reads -o $output_dir -t 32
+            ```
+            3. Quality assessment of assembly
+               checks completeness and contamination levels
+               3.1 Quast
+               ```sh
+               micromamba activate 04_checkm_quast
+               
+               quast.py assembly.fasta --circos -L --conserved-genes-finding --rna-finding\
+               --glimmer --use-all-alignments --report-all-metrics -o $output_dir -t 16
+               ```
+               3.2 CheckM
+               ```sh
+               micromamba activate 04_checkm_quast
+               # Create the output directory if it does not exist
+               mkdir -p $checkm_out
+               # Run CheckM for this assembly
+               checkm lineage_wf $inputdir $output_dir -x fasta --tab_table --file $checkm_out/checkm_results -r -t 24
+               # Run CheckM QA for this assembly
+               checkm tree_qa ./$checkm_out
+               checkm qa ./$checkm_out/lineage.ms ./$checkm_out/ -o 1 > ./$checkm_out/Final_table_01.csv
+               checkm qa ./c$checkm_out/lineage.ms ./$checkm_out/ -o 2 > ./$checkm_out/final_table_checkm.csv
+               ```
+               3.3 Visualisation of Assemblies
+               with Bandage on your desktop (if already installed)
+               4. Assembly annotation (Prokka tool)
+                  ```sh
+                  micromamba activate 06_prokka
+                  # Run Prokka on the file
+                  prokka $input/assembly.fasta --outdir $output_dir --kingdom Bacteria --addgenes --cpus 32
+                  ```
+               5. Classification of genomes (GTDB-TK database)
+                     first copy the .fna files of the annotated genomes to the GTDBTK directory
+                     then...
+                     ```sh
+                     micromamba activate 07_gtdbtk
+                     #run gtdb
+                     gtdbtk classify_wf --cpus 12 --genome_dir $input_fna_files --out_dir $output_dir --extension .fna
+                     #reduce cpu and increase the ram in bash script in order to have best performance
+                     ```
+               6. Combining reports (Multiqc tool)
+                  multiqc will create the output directory on its own, so dont create it before running it
+                  Run MultiQC to combine all the QC reports at once at the end of the pipeline.
+                  ```sh
+                  micromamba activate 01_short_reads_qc
+                  # run multiqc
+                  multiqc $input_dir -o $output_dir
+                  ```
+            PANGENOMICS
+            1. Comparing genomes with ANVI'O
+               Involves obtaining  consensus from comparing genomes of different organisms fro example strains of the same species.
+               dendogram is drawn to show the relationship
+               Usually done at a genus (here you will deal with a bigger number of genomes due to the diffeent species) or species level
+               species level is better
+               relevance: analyses genome function and functional relationships ANI can be computred and visualised
+                Compared the genomes of 8 Vibrio jasicida strains using Anvio.
+               information a pan-genome entails:
+               multiple related genomes (singletons, accessory and core genes) and MAGsnumber of genes, gene cluster and orthologues (cluster: a group of genes with similar
+               sequences
+               Gene frequency analysis; analyses the frequency of; core, accessory and singleton genes
+               1.1. Activate the conda environmemnt
+               1.2 Download the data
+               that is the  sequences of the different strains
+               ```sh
+               curl -L https://ndownloader.figshare.com/files/28965090 -o V_jascida_genomes.tar.gz
+               tar -zxvf V_jascida_genomes.tar.gz
+               ls V_jascida_genomes
+               ```
+               1.3 Creat contigs database from fasta files
+                ```sh
+               cd $WORK/pangenomics_test/V_jascida_genomes/
+                ls *fasta | awk 'BEGIN{FS="_"}{print $1}' > genomes.txt
 
-anvi-summarize -p /PATH/TO/merged_profiles/? -c ? -o SUMMARY_MAXBIN2 -C ?
-helps creat a folder of the results for each binning tool that has been run
-BINSANITY (150 bins, representing 57721 items).
-* METABAT (48 bins, representing 8961 items).
-MAXBIN2 ()
+                # remove all contigs <2500 not
+                for g in `cat genomes.txt`
+                do
+                echo
+                echo "Working on $g ..."
+                echo
 
+                anvi-script-reformat-fasta ${g}_scaffolds.fasta \
+                               --min-len 2500 \
+                               --simplify-names \
+                               -o ${g}_scaffolds_2.5K.fasta
+                done
 
-## 4.2 CheckM
-micromamba activate 04_checkm_quast
-cd $WORK/genomics/3_hybrid_assembly
-mkdir -p $WORK/genomics/3_hybrid_assembly/checkm
-checkm lineage_wf $WORK/genomics/3_hybrid_assembly/ $WORK/genomics/3_hybrid_assembly/checkm -x fasta --tab_table --file $WORK/genomics/3_hybrid_assembly/checkm/checkm_results -r -t 32
-checkm tree_qa $WORK/genomics/3_hybrid_assembly/checkm
-1.multiple binners
-2.reassembling them with the clean reads
-3.chimera (different contigs binned together)detection using the GUNC tool
+                # generate contigs.db
+                for g in `cat genomes.txt`
+                do
+                echo
+                echo "Working on $g ..."
+                echo
+                anvi-gen-contigs-database -f ${g}_scaffolds_2.5K.fasta \
+                              -o V_jascida_${g}.db \
+                              --num-threads 4 \
+                              -n V_jascida_${g}
+                done
+                # annotate contigs.db
 
-then...
-#QC run on the bins(MAGs) again
+                for g in *.do
+                do
+                anvi-run-hmms -c $g --num-threads 4
+                anvi-run-ncbi-cogs -c $g --num-threads 4
+                anvi-scan-trnas -c $g --num-threads 4
+                anvi-run-scg-taxyonomy -c $g --num-threads 4
+                done
+                ```
+                1.4 Visualisation of contigs
+                ```sh
+               module load gcc12-env/12.1.0
+               module load miniconda3/4.12.0
+               conda activate anvio-8
 
-#reassemble 
-
-then...
-#run a chimera detection
-tool used can be GUNC
-
-#summary of your collections
-anvi-summarize -p /PATH/TO/merged_profiles/PROFILE.db -c /PATH/TO/contigs.db --list-collections
-
-#chimera detection
-create a folder and place all the archea binns from the metabat run (grouping the bins )
-activate the gunc environment
-then run the ##command for i in *.fa; do gunc run -i ? -r /work_beegfs/sunam###/Databases/gunc_db_progenomes2.1.dmnd --out_dir ? --threads 10 --detailed_output; done
-
-gunc plot -d /PATH/TO/YOUR/diamond_output/METABAT__#-contigs.diamond.progenomes_2.1.out -g /PATH/TO/YOUR/genes_calls/gene_counts.json
-uses a GUNC tool that assigns the bins scores between 0 to 1 and thet are with in a CSC and RSS format
-this is done using the #command gunc plot -d /PATH/TO/YOUR/diamond_output/METABAT__#-contigs.diamond.progenomes_2.1.out -g /PATH/TO/YOUR/genes_calls/gene_counts.json
-it plots the CSC and RSS. The closer the value is to 0, the better or more refined our bind are
-
-Day 6
-Genomics 
-#steps done
-Short reads-QC
-fastqc tool-quality 
-fastp tool- quality and trimming
-fastqc tool-quality check again
-
-long reads-QC
-Nanoplot tool -quality
-filtlong tool-quality and trimming
-Nanoplot tool-quality again
-
-hybrid assembly
-using Unicycler tool (can clean the reads too if not cleaned prior)
-assembles the clean Short reads and clean long reads
-
-assembly QC
-Using:
-CheckM & checkM2 & Quast tools
-determined based on :
-completeness
-level of contamination
-
-assembly annotation
-using PROKKA tool
-
-
-
-Day 7
-#Pan genomics and phylogenomics
-shows relationship between related organisms
-dendogram is drawn to shwo the relationship
-*a Pan genome basically the results from the comparison of related organisms.
-Usually done at a genus (here you will deal with a bigger number of genomes due to the diffeent species) or species level
-species level is better
-
-1. relevance
-analyses geneome function and functional relationships
-ANI can be computred and visualised
-
-2. information a pan genome entails
-multiple related genomes (singletons, accessory and core genes) and MAGs
-number of genes, gene cluster and orthologues (cluster: a group of genes with similar sequences)
-single copy genes-one copy is (anvio-8) [sunam228@caucluster1 V_jascida_genomes]$ anvi-script-gen-genomes-file --input-dir /path/to/input/dir \
-n micromamba
-*depicted as a dendogram or rings to organise the pan genome
-2. Gene frequency analysis 
-analysises the frequency of; core, accessory and singleton genes
-
-#Phylogeomics and taxonomy
-phylogenomics: uses a large number large of genes/ proteins
-phylogenetics: uses individual/ small number of genes
-phylogenomics: shows the relationship between the different genomes
-1.Taxonomic identification
-can be done based on;
-phylogenomics
-sequencing data of partial or complete genomes
-Protein-based; that is Relative Evolutinary abundance
-ANI
-
-##Phylogenomic application
-ANI used for analysis of whole genome similarity(used for species identification)
-compares your sequence to other sequences in a database
-*Databases
-TYGS-Type strain database (strain that was isolated and identified first)
-JSpeciesWs
-* the best databases to use are the most updated  
-1. for phylogenomic conparison, the sequnce must have:
- the whole genome similarity ANI, of atleast 95%
- completeness of atleast 98%
- should have SCGs
-
- #pangenomics
- 1.downloaded 52 genomes (as fasta files) of Vibrio jasicida strains using Anvio
-2.created contig databases for sample
-3.visualised the contigs using ##command
- block of code:
-'''sh 
-module load gcc12-env/12.1.0
-module load miniconda3/4.12.0
-conda activate anvio-8
-anvi-display-contigs-stats /path/to.your/databases/*db
-'''
-
-4.created external genomes
-this was done using the  contigs databases for ecah sample created.
-this combines tzhe details on how to access the contigs databases when running ANVIO
-##command anvi-script-gen-genomes-file --input-dir /path/to/input/dir \
+               anvi-display-contigs-stats /path/to.your/databases/*db
+                ```
+                1.5 Create an external genomes file
+                ```sh
+               anvi-script-gen-genomes-file --input-dir /path/to/input/dir \
                              -o external-genomes.txt
-the input here are the contigs databases generated.
-5.investigation of contamination
-done in the terminal
-done by estimating contamination
-##command cd V_jascida_genomes
-anvi-estimate-genome-completeness -e external-genomes.txt
-
-(anvio-8) [sunam235@caucluster1 downloads]$ anvi-estimate-genome-completeness -e external-genomes.txt
-+----------------------------------------------------------------------------+----------+--------------+----------------+----------------+--------------+----------------+
+                 ```
+                1.6 Estimate contamination
+                done in the terminal
+                ```sh
+                cd V_jascida_genomes
+                anvi-estimate-genome-completeness -e external-genomes.txt
+                ```
+                estimated completeness too for some of my practice samples below,
+               +----------------------------------------------------------------------------+----------+--------------+----------------+----------------+--------------+----------------+
 | genome name                                                                | domain   |   confidence |   % completion |   % redundancy |   num_splits |   total length |
 +============================================================================+==========+==============+================+================+==============+================+
 | my_genome_Acinetobacter_pittii_PHEA-2                                      | BACTERIA |            1 |            100 |              0 |          193 |        3862530 |
@@ -322,117 +426,124 @@ anvi-estimate-genome-completeness -e external-genomes.txt
 +----------------------------------------------------------------------------+----------+--------------+----------------+----------------+--------------+----------------+
 | my_genome_Staphylococcus_epidermidis-strain-ATCC_14990                     | BACTERIA |            1 |            100 |           1.41 |          123 |        2466502 |
 +----------------------------------------------------------------------------+----------+--------------+----------------+----------------+--------------+----------------+
+                1.7 Visualise contigs for refinement
+               ```sh
+               anvi-profile -c V_jascida_52.db \
+               --sample-name V_jascida_52 \
+               --output-dir V_jascida_52 \
+               --blank
+               ```
+               1.8 Split genome into good bins
+               ```sh
+               anvi-split -p V_jascida_52/PROFILE.db \
+                -c V_jascida_52.db \
+               -C default \
+               -o V_jascida_52_SPLIT
+               # Here are the files you created
+               #V_jascida_52_SPLIT/V_jascida_52_CLEAN/CONTIGS.db
 
-6.visual
-in anvi interactive
-##command anvi-interactive -c V_jascida_52.db \
-                 -p V_jascida_52/PROFILE.db
-7. now we split the bins
-first, save the bins you wants to keep from the anvio display(go to bins, give it a name and save as default)
-to split use the ##command anvi-split -p V_jascida_52/PROFILE.db \
-           -c V_jascida_52.db \
-           -C default \
-           -o V_jascida_52_SPLIT
-
-# Here are the files you created
-#V_jascida_52_SPLIT/V_jascida_52_CLEAN/CONTIGS.db
-
-8 split Vs unsplit estimation
-using the estimation command
-##command anvi-estimate-genome-completeness -e external-genomes.txt
-anvi-estimate-genome-completeness -e external-genomes-final.txt
-9. compute the pangenome
-i.e the common sequence among the related genomes
-##command anvi-gen-genomes-storage -e external-genomes-final.txt \
+               sed 's/V_jascida_52.db/V_jascida_52_SPLIT\/V_jascida_52_CLEAN\/CONTIGS.db/g' external-genomes.txt > external-genomes-final.txt
+               ```
+               1.9 Estimate completeness of spit versus unsplit
+                ```sh
+                anvi-estimate-genome-completeness -e external-genomes.txt
+                anvi-estimate-genome-completeness -e external-genomes-final.txt
+                ```
+                1.10 Compute the pangenome
+               ```sh
+               anvi-gen-genomes-storage -e external-genomes-final.txt \
                          -o V_jascida-GENOMES.db
 
-anvi-pan-genome -g V_jascida-GENOMES.db \
+               anvi-pan-genome -g V_jascida-GENOMES.db \
                 --project-name V_jascida \
-                --num-threads 4 
-10.visualisation of the pangenome
-using the srun command.
-##command srun --pty --mem=10G --nodes=1 --tasks-per-node=1 --cpus-per-task=1 --partition=base /bin/bash
+                --num-threads 4                         
+               ```
+               1.11 Display the pangenome
+                ```sh
+                srun --pty --mem=10G --nodes=1 --tasks-per-node=1 --cpus-per-task=1 --partition=base /bin/bash
 
-module load gcc12-env/12.1.0
-module load miniconda3/4.12.0
-conda activate anvio-8_biol217
+                module load gcc12-env/12.1.0
+                module load miniconda3/4.12.0
+                conda activate anvio-8_biol217
 
-anvi-display-pan -p V_jascida/V_jascida-PAN.db \
+                anvi-display-pan -p V_jascida/V_jascida-PAN.db \
                  -g V_jascida-GENOMES.db
-In a new terminal (update the node "n100" to actually used one)
+                ```
+            TRANSCRIPTOMICS
+            1. RNAseq
+               a transcriptome profiling technique used to identify and determine expression levels of transcripts
+               involves:
+               RNA-Seq data pre-processing
+               RNA-Seq Data Analysis
+               Differential Gene Expression
+               Data Visualization
+               SRA dataset used was from Prasse et al. 2017
+               1.1 Quality control
+               quality of the SRR sequences were checked using fastqc tool
+               quality was good, so no trimming was done.
+               1.2 READemption analysis
+               READemption tool was used for the RNAseq analysis and visualisation was done in IGB
+               ```sh
+               #!/bin/bash
+               #SBATCH --nodes=1
+               #SBATCH --cpus-per-task=32
+               #SBATCH --mem=64G
+               #SBATCH --time=0-04:00:00
+               #SBATCH --job-name=rna_seq_methanosarcina
+               #SBATCH --output=rna_seq_methanosarcina.out
+               #SBATCH --error=rna_seq_methanosarcina.err
+               #SBATCH --partition=base
+               #SBATCH --reservation=biol217
 
-ssh -L 8060:localhost:8080 sunam226@caucluster.rz.uni-kiel.de
+               module load gcc12-env/12.1.0
+               module load miniconda3/4.12.0
+               conda activate reademption
 
-ssh -L 8080:localhost:8080 n100
+               ## 1. create a directory for the analysis
+               reademption create --project_path READemption_analysis \
+               --species metanosarcina="Methanosarcina mazei Gö1"
 
-11.computing phylogenomics for the pangenome
-anvi-compute-genome-similarity -e external-genomes.txt \
-                 -o ANI \
-                 -p PROCHLORO/Prochlorococcus_Pan-PAN.db \
-                 -T 12
+               #2- copy the sequences and files in respective directories
+               # download the sequences from the NCBI database or github folder named "genome_input"
 
-anvi-get-sequences-for-gene-clusters -p PROCHLORO/Prochlorococcus_Pan-PAN.db \
-                                     -g PROCHLORO-GENOMES.db \
-                                     --min-num-genomes-gene-cluster-occurs 31 \
-                                     --max-num-genes-from-each-genome 1 \
-                                     --concatenate-gene-clusters \
-                                     --output-file PROCHLORO/Prochlorococcus-SCGs.fa
+               #3- Processing and aligning the reads
+               reademption align --project_path READemption_analysis \
+               --processes 32 --segemehl_accuracy 95 \
+               --poly_a_clipping \
+               --fastq --min_phred_score 25 \
+               --progress
 
-trimal -in PROCHLORO/Prochlorococcus-SCGs.fa \
-       -out PROCHLORO/Prochlorococcus-SCGs-trimmed.fa \
-       -gt 0.5 
+               #4- Coverage
+               reademption coverage --project_path READemption_analysis \
+               --processes 32
+               #5- Performing gene wise quantification
+               reademption gene_quanti --project_path READemption_analysis \
+               --processes 32 --features CDS,tRNA,rRNA
+               #6- Performing differential gene expression analysis
 
-iqtree -s PROCHLORO/Prochlorococcus-SCGs-trimmed.fa \
-       -m WAG \
-       -bb 1000 \
-       -nt 8
+               ####NOTE:: Change the names according to your file names in the READemption_analysis/input/reads/ directory
 
-echo -e "item_name\tdata_type\tdata_value" \
-        > PROCHLORO/Prochlorococcus-phylogenomic-layer-order.txt
+               reademption deseq --project_path READemption_analysis \
+               --libs mut_R1.fastq.gz,mut_R2.fastq.gz,wt_R1.fastq.gz,wt_R2.fastq.gz \
+               --conditions mut,mut,wt,wt --replicates 1,2,1,2 \
+               --libs_by_species metanosarcina=mut_R1,mut_R2,wt_R1,wt_R2
 
-# add the newick tree as an order
-echo -e "SCGs_Bayesian_Tree\tnewick\t`cat PROCHLORO/Prochlorococcus-SCGs-trimmed.fa.treefile`" \
-        >> PROCHLORO/Prochlorococcus-phylogenomic-layer-order.txt
+               #7- Create plots
+               reademption viz_align --project_path READemption_analysis
+               reademption viz_gene_quanti --project_path READemption_analysis
+               reademption viz_deseq --project_path READemption_analysis
 
-# import the layers order file
-anvi-import-misc-data -p PROCHLORO/Prochlorococcus_Pan-PAN.db \
-                      -t layer_orders PROCHLORO/Prochlorococcus-phylogenomic-layer-order.txt
-Visusalisation 
-anvi-display-pan -g PROCHLORO-GENOMES.db \
-                 -p PROCHLORO/Prochlorococcus_Pan-PAN.db
-Day 8
-Transcriptomics
-has formats;
-RNA-seq
-Ribo-Seq
-when using ribo seq , you need both RNA-seq& Ribo-Seq and then get the translation efficiency
-that is;the ratio of Ribo-Seq levels to RNA-seq levels
-1.step in RNA Seq
-study design
-library preparation
-analysis
-1.1 study design
-ensure that,
-have a cvontrol
-observable changes
-phenotypic differences
-you know what the control is based on
-1.2 obtaining data for RNAseq
-Find the accession number of the data you want to download, mentioned in the published paper.
-Go to the NCBI website and search for the accession number.
-Download the data from SRA database.
-Find the SRR numbers of the data you want to download. and run the following commands:
-
-image insertion in markdown
-
-![image addition to documents](./Resources/taxonomy.png)
-
-
-
-
-day 9
-#Ribosome profiling
-translation efficiency
-visualisation of expression in IGB
-
-#R & R studio
+               # The whole command will take around 2 hours to run.
+               conda deactivate
+               module purge
+               jobinfo
+               ```
+            2. Riboprofiling (Riboseq)
+                  study of ribosome-protected mRNA footprints
+               can be used to determine translation efficiency, that is; the ratio of Ribo-Seq levels to RNA-seq levels
+                  helps identify newly found genes and distinguish between coding and non-coding sequences.
+                  results shoiuld be compared with other confirmatory analyses such as RNAseq.
+                  SRR sequences were riboprofiled using HRIBO tool.
+                visualisation of expression was done in IGB
+                  
+            R & R studio
