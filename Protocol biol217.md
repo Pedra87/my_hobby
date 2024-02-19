@@ -13,6 +13,8 @@ ssh -X sunam235@caucluster.rz.uni-kiel.de
   inline code:
   this is the command `cp`
   gunc plot -d /PATH/TO/YOUR/diamond_output/METABAT__#-contigs.diamond.progenomes_2.1.out -g /PATH/TO/YOUR/genes_calls/gene_counts.json
+4. Bash script
+For executing a process
 #!/bin/bash
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=4
@@ -23,79 +25,129 @@ ssh -X sunam235@caucluster.rz.uni-kiel.de
 #SBATCH --error=fastqc.err
 #SBATCH --partition=base
 #SBATCH --reservation=biol217
-is a command line for executing a process
-#SAMPLENAME.SAM SAVES YOUR OUTPUT IN THE EXACT SAME FOLDER.
 
+
+5. Activates the conda environment
 module load gcc12-env/12.1.0
 module load miniconda3/4.12.0
 conda activate anvio-8
- activates the conda environment
+
+ cd /work_beegfs/sunam235/Metagenomics/assembly (path of directory)
 
  >>txt.file    
 
-cd /work_beegfs/sunam235/Metagenomics/assembly
-Coping to desktop
+
+6. Coping to desktop
 scp sunam235@caucluster.rz.uni-kiel.de:/work_beegfs/sunam235/Metagenomics/3_coassembly/*.fastg
 coping to the desktop from a local terminal
 
 So... from raw reads......
 
-#Quality control
-1.fastqc
+METAGENOMICS (pipeline and commands)
+1. Quality control
+1.1 fastqc
+   Checks quality
+   Input- raw reads (fastq files)
+   output-fastqc report
  In a aloop
  ```sh
  cp for i in *.gz; do fastqc $i -o output_folder/; done
 ```
-2.fastp
-##command fastp -i ? -I ? -R ? -o ? -O ? -t 6 -q 20
+1.2 fastp
+Trims and checks quality as well.
+input-raw reads fastq files
+output-fastp report (clean reads)
+```sh
+fastp -i ? -I ? -R ? -o ? -O ? -t 6 -q 20
+```
+2. Assembly (megahit tool)
+   input-cleaned reads (fastq file format)
+   output-contigs (fasta file format)-consensus region from aligned clean reads.
+```sh
+megahit -1 sample1_R1_clean.fastq.gz -1 sample2_R1_clean.fastq.gz -1 sample3_R1_clean.fastq.gz -2 sample1_R2_clean.fastq.gz -2 sample2_R2_clean.fastq.gz -2 sample3_R2_clean.fastq.gz --min-contig-len 1000 --presets meta-large -m 0.85 -o /PATH/TO/3_coassembly/ -t 12
+```
+2.1 Contigs visualisation
+contigs in fasta file format converted to fastg file format
+```sh
+megahit_toolkit contig2fastg 99 final.contigs.fa > final.contigs.fastg
+ ```                 
+visualized in Bandage (installed on the desktop)
+2.2 Counting contigs (grep tool)
+```sh
+grep -c ">" final.contigs.fa
+ ```
+2.3 Assessment of quality of assemblies (metaquast tool)
+checks quality of assembled contigs
+```sh
+metaquast -t 6 -o /PATH/TO/3_metaquast -m 1000 final.contigs.fa
+```
+3. Mapping (Bowtie2)
+identifying which reads contribute to which contig-genomic coverage
+The contigs are first formatted into a format acceptable by ANVI'O 
+```sh
+anvi-script-reformat-fasta ? -o ? --min-len 1000 --simplify-names --report-file name_conversion.txt
+ ```
+index the mapping reference fasta file
+```sh
+module load bowtie2
+bowtie2-build contigs.anvio.fa contigs.anvio.fa.index
+```
+then align clean reads with contigs
+```sh
+module load bowtie2
+bowtie2 --very-fast -x contigs.anvio.fa.index -1 /PATH/TO/sample1_R1_clean.fastq.gz -2 /PATH/TO/sample1_R2_clean.fastq.gz -S SAMPLE.sam
+```
+output-contigs in sam file format
+4. Contigs database generation (anvi-gen tool)
+first convert the contigs (sam file format) to bam file format
+```sh
+module load samtools
+samtools view -bS ? > bam_file.bam
+```
+then generate the data base
+```sh
+anvi-gen-contigs-database -f contigs.anvio.fa -o contigs.db -n 'biol217'
+```
+information etailed in the contigs database generated;
+Compute k-mer frequencies for each contig
+Soft-split contigs longer than 20,000 bp into smaller ones
+Open reading frames using Prodigal, the bacterial and archaeal gene finding program
 
-reformat the fastp out put to a format that is compatible with the anvio
-mapping is done with the contigs(results of the megahit) and the clean reads(results of the fastp)
-fastq and fastp(input were the raw reads from fastq) are quality control methods done before the assembly of the contigs, then do megahit (sstiches the short reads together to from contigs) to assemble your contigs in fasta file formats (input are the clean reads from fastp)
-results of the megahit are a fasta file
-can be converted to a fastg file using the ## 
-format the contigs in fasta file format to contigs anvio.fa format, before runnng the index. 
-
-#Mapping
-once your contigs.anvio.index is generated, now run the mapping commad ##module load bowtie2
-bowtie2 --very-fast -x contigs.anvio.fa.index -1 /PATH/TO/sample1_R1_clean.fastq.gz -2 /PATH/TO/sample1_R2_clean.fastq.gz -S SAMPLE.
-this overlays the indexes and the clean reads inorder to map.
-
-the output from mapping (sam files) are converted into BAM files for further processing using the command ##module load samtools
-samtools view -bs sam_file.sam > bam_file.bam
-
-#contigs data preparation
-using the ##command anvi-gen-contigs-database -f contigs.anvio.fa -o contigs.db -n 'biol217'
-helps you compute:
-1.kmer frequencies
-2.soft split contigs longer than 20kbp into smaller ones
-3.identify ORFs using prodigal,(searxches for functinal genes in bacteria and archea)
-
-#HMM search on contigs
-this is the hidden markov model
+5. HMM search on contigs
+Hidden Markov Model
 searches for specific genes with a known function in a larger dataset
-uses the command ##anvi-run-hmms -c contigs.db
 it identifies hits (bacterial single copy core gene collections) among your genes to the collections.
+```sh
+anvi-run-hmms -c contigs.db
+```
 
-#Visualisation of contigs
-using the command anvi-display-contigs-stats contigs.db using the ##command srun --reservation=biol217 --pty --mem=10G --nodes=1 --tasks-per-node=1 --cpus-per-task=1 --nodelist=node010 /bin/bash
-this is done on the terminal to give us access to the NODES in order to visualise the contigs.db (with which we run our hmms) 
-this is possible when you have:
-1.your contigs
-2. and your HMMs are run
+6. Visualisation of contigs database
+Done in the terminal to give us access to the NODES to visualise the contigs.db (with which we performed  hmm search) 
+```sh
+module load gcc12-env/12.1.0
+module load miniconda3/4.12.0
+conda activate anvio-8
 
-#Binning with ANVI'o
-1. sorting and idexing bam files
-##command *.bam; do anvi-init-bam $i -o ''$i''.sorted.bam;done
-before proceding to genome binning(grouping contigs and assigning them to individual genomes) a few preparation steps are required. 
-That is;
-2. creating an anvio profile
-this profile stores sample specific information about the contigs
-therefore gives  properties for each contig in a single sample based on mapping results.
-##comand anvi-profile -i ? -c ? --output-dir ?
-i-sorted and indexed bam file
-c-contig database file
-3.Profile merging.
+anvi-display-contigs-stats contigs.db
+```
+
+7. Binning with ANVI'O
+   7.1 sorting and indexing bam files
+   ```sh
+   for i in *.bam; do anvi-init-bam $i -o "$i".sorted.bam; done
+   ```
+   7.2 creating  anvio profiles
+   this profile stores sample-specific information about the contigs
+   therefore gives  properties for each contig in a single sample, based on mapping results.
+    in a loop
+    ```sh
+    mkdir /PATH/TO/profiling/
+for i in `ls *.sorted.bam | cut -d "." -f 1`; do anvi-profile -i "$i".bam.sorted.bam -c contigs.db -o /PATH/TO/profiling/”$i”; done
+  ```
+-i sorted and indexed bam file, used as input
+-c contig.db file
+--output-dir give your output directory a name
+7.3 ANVI'O Profile merging.
 merge the profiles into one (that is the 3 profiles you have for your 3 samples must be merged into 1 whole anvio profile)
 this is done by overlapping all the profiles alongside the contigs database
 4.Binning
