@@ -287,11 +287,11 @@ GENOMICS (pipeline and commands)
                checks completeness and contamination levels
          3.1 Quast
          ```sh
-               micromamba activate 04_checkm_quast
-               
-               quast.py assembly.fasta --circos -L --conserved-genes-finding --rna-finding\
-               --glimmer --use-all-alignments --report-all-metrics -o $output_dir -t 16
-               ```
+         micromamba activate 04_checkm_quast
+         quast.py assembly.fasta --circos -L --conserved-genes-finding --rna-finding\
+         --glimmer --use-all-alignments --report-all-metrics -o $output_dir -t 16
+         ```sh
+      
       3.2 CheckM
                ```sh
                micromamba activate 04_checkm_quast
@@ -324,11 +324,11 @@ GENOMICS (pipeline and commands)
             6. Combining reports (Multiqc tool)
                   multiqc will create the output directory on its own, so dont create it before running it
                   Run MultiQC to combine all the QC reports at once at the end of the pipeline.
-                  ```sh
-                  micromamba activate 01_short_reads_qc
-                  # run multiqc
-                  multiqc $input_dir -o $output_dir
-                  ```
+               ```sh
+               micromamba activate 01_short_reads_qc
+               # run multiqc
+               multiqc $input_dir -o $output_dir
+               ```
    PANGENOMICS
        1. Comparing genomes with ANVI'O
                Involves obtaining  consensus from comparing genomes of different organisms fro example strains of the same species.
