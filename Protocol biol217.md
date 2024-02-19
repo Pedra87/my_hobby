@@ -132,18 +132,18 @@ anvi-display-contigs-stats contigs.db
 ```
 
 7. Binning with ANVI'O
- 7.1 Preparation of contig data for binning.
-  7.1.1 sorting and indexing bam files
+7.1 Preparation of contig data for binning.
+7.1.1 sorting and indexing bam files
    ```sh
    for i in *.bam; do anvi-init-bam $i -o "$i".sorted.bam; done
    ```
-  7.1.2 creating  anvio profiles
+7.1.2 creating  anvio profiles
    this profile stores sample-specific information about the contigs
    therefore gives  properties for each contig in a single sample, based on mapping results.
     ```sh
     anvi-profile -i YOUR_SORTED.bam -c contigs.db --output-dir OUTPUT_DIR
     ```
-  7.1.3 ANVI'O Profile merging.
+7.1.3 ANVI'O Profile merging.
    the profiles are merged into one (that is; the 3 profiles you have for your 3 samples must be merged into 1 whole Anvio profile)
    this is done by overlapping all the profiles alongside the contigs database
    ```sh
@@ -152,12 +152,12 @@ anvi-display-contigs-stats contigs.db
 7.2 Binning
    clustering of contigs together to form MAGs-Metagenome Assembled Genomes
    different tools can be used: Metabat2, binsanity, MaxBin2 among others.
-  7.2.1 Binning with MetaBat2
+7.2.1 Binning with MetaBat2
     ```sh
    anvi-cluster-contigs -p /PATH/TO/merged_profiles/PROFILE.db -c /PATH/TO/contigs.db -C METABAT --driver metabat2 --just-do-it --log-file log-metabat2
     anvi-summarize -p /PATH/TO/merged_profiles/PROFILE.db -c /PATH/TO/contigs.db -o SUMMARY_METABAT -C METABAT
       ```
-  7.2.2 Binning with MaxBin2
+7.2.2 Binning with MaxBin2
    ```sh
    anvi-cluster-contigs -p /PATH/TO/merged_profiles/PROFILE.db -c /PATH/TO/contigs.db -C MAXBIN2 --driver maxbin2 --just-do-it --log-file log-maxbin2
    anvi-summarize -p /PATH/TO/merged_profiles/PROFILE.db -c /PATH/TO/contigs.db -o SUMMARY_MAXBIN2 -C MAXBIN2
@@ -190,7 +190,7 @@ anvi-display-contigs-stats contigs.db
    anvi-summarize -p ? -c ? --list-collections
    anvi-summarize -c ? -p ? -C ? -o ? --just-do-it
     ```
-   7.4.1 Chimera detection
+7.4.1 Chimera detection
    activate the gunc environment
      ```sh
    module load gcc12-env/12.1.0
@@ -206,7 +206,7 @@ anvi-display-contigs-stats contigs.db
       
    then.........
    Run a QC on the MAGs again
-  7.4.2 Manual bin refinement
+7.4.2 Manual bin refinement
    As large metagenome assemblies can result in hundreds of bins, pre-select the better ones for manual refinement, e.g. > 70% completeness.
    Before you start, make a copy/backup of your unrefined bins to avoid them from being overwritten.
    Use anvi refine to work on your bins manually.
@@ -231,7 +231,7 @@ anvi-display-contigs-stats contigs.db
       ```
 GENOMICS (pipeline and commands)
    1. Quality control
-      1.1 Short reads (fast qc & fatsp tool)
+1.1 Short reads (fast qc & fatsp tool)
          ```sh
          #!/bin/bash
          #SBATCH --nodes=1
@@ -285,14 +285,14 @@ GENOMICS (pipeline and commands)
             ```
       3. Quality assessment of assembly
                checks completeness and contamination levels
-               3.1 Quast
-               ```sh
+         3.1 Quast
+         ```sh
                micromamba activate 04_checkm_quast
                
                quast.py assembly.fasta --circos -L --conserved-genes-finding --rna-finding\
                --glimmer --use-all-alignments --report-all-metrics -o $output_dir -t 16
                ```
-               3.2 CheckM
+      3.2 CheckM
                ```sh
                micromamba activate 04_checkm_quast
                # Create the output directory if it does not exist
@@ -329,7 +329,7 @@ GENOMICS (pipeline and commands)
                   # run multiqc
                   multiqc $input_dir -o $output_dir
                   ```
-      PANGENOMICS
+   PANGENOMICS
        1. Comparing genomes with ANVI'O
                Involves obtaining  consensus from comparing genomes of different organisms fro example strains of the same species.
                dendogram is drawn to show the relationship
@@ -341,8 +341,8 @@ GENOMICS (pipeline and commands)
                multiple related genomes (singletons, accessory and core genes) and MAGsnumber of genes, gene cluster and orthologues (cluster: a group of genes with similar
                sequences
                Gene frequency analysis; analyses the frequency of; core, accessory and singleton genes
-           1.1. Activate the conda environmemnt
-           1.2 Download the data
+         1.1. Activate the conda environmemnt
+         1.2 Download the data
                that is the  sequences of the different strains
                ```sh
                curl -L https://ndownloader.figshare.com/files/28965090 -o V_jascida_genomes.tar.gz
@@ -434,16 +434,16 @@ GENOMICS (pipeline and commands)
                --output-dir V_jascida_52 \
                --blank
                ```
-            1.8 Split genome into good bins
-                ```sh
+      1.8 Split genome into good bins
+         ```sh
               anvi-split -p V_jascida_52/PROFILE.db \
               -c V_jascida_52.db \
                -C default \
                -o V_jascida_52_SPLIT
                # Here are the files you created
                #V_jascida_52_SPLIT/V_jascida_52_CLEAN/CONTIGS.db
-
                sed 's/V_jascida_52.db/V_jascida_52_SPLIT\/V_jascida_52_CLEAN\/CONTIGS.db/g' external-genomes.txt > external-genomes-final.txt
+               ```sh
                  
    1.9 Estimate completeness of spit versus unsplit
      ```sh
