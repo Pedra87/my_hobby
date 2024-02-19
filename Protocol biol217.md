@@ -41,9 +41,10 @@ So... from raw reads......
 
 #Quality control
 1.fastqc
-##command fastqc file.gz -o output_folder/
-1.1 in a aloop
-##command for i in *.gz; do fastqc $i -o output_folder/; done
+ In a aloop
+ ```sh
+ cp for i in *.gz; do fastqc $i -o output_folder/; done
+```
 2.fastp
 ##command fastp -i ? -I ? -R ? -o ? -O ? -t 6 -q 20
 
