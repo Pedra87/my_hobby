@@ -34,6 +34,7 @@ conda activate anvio-8
  >>txt.file    
 
 cd /work_beegfs/sunam235/Metagenomics/assembly
+Coping to desktop
 scp sunam235@caucluster.rz.uni-kiel.de:/work_beegfs/sunam235/Metagenomics/3_coassembly/*.fastg
 coping to the desktop from a local terminal
 
