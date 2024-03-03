@@ -133,27 +133,31 @@ anvi-display-contigs-stats contigs.db
 
 7. Binning with ANVI'O
 
-/ 7.1 Preparation of contig data for binning.
+7.1 Preparation of contig data for binning.
 
 7.1.1 sorting and indexing bam files
    ```sh
    for i in *.bam; do anvi-init-bam $i -o "$i".sorted.bam; done
    ```
+
 7.1.2 creating  anvio profiles
    this profile stores sample-specific information about the contigs
    therefore gives  properties for each contig in a single sample, based on mapping results.
     ```sh
     anvi-profile -i YOUR_SORTED.bam -c contigs.db --output-dir OUTPUT_DIR
     ```
+
 7.1.3 ANVI'O Profile merging.
    the profiles are merged into one (that is; the 3 profiles you have for your 3 samples must be merged into 1 whole Anvio profile)
    this is done by overlapping all the profiles alongside the contigs database
    ```sh
    anvi-merge /PATH/TO/SAMPLE1/PROFILE.db /PATH/TO/SAMPLE2/PROFILE.db /PATH/TO/SAMPLE3/PROFILE.db -o /PATH/TO/merged_profiles -c /PATH/TO/contigs.db --enforce-hierarchical-clustering
    ```
+
 7.2 Binning
    clustering of contigs together to form MAGs-Metagenome Assembled Genomes
    different tools can be used: Metabat2, binsanity, MaxBin2 among others.
+
 7.2.1 Binning with MetaBat2
     ```sh
    anvi-cluster-contigs -p /PATH/TO/merged_profiles/PROFILE.db -c /PATH/TO/contigs.db -C METABAT --driver metabat2 --just-do-it --log-file log-metabat2
@@ -164,6 +168,7 @@ anvi-display-contigs-stats contigs.db
    anvi-cluster-contigs -p /PATH/TO/merged_profiles/PROFILE.db -c /PATH/TO/contigs.db -C MAXBIN2 --driver maxbin2 --just-do-it --log-file log-maxbin2
    anvi-summarize -p /PATH/TO/merged_profiles/PROFILE.db -c /PATH/TO/contigs.db -o SUMMARY_MAXBIN2 -C MAXBIN2
    ```
+
 7.3 MAG quality estimation & visualization
    estimates genome completeness and contamination levels.
    completeness: high quality-above 90% and medium quality 50-90%
@@ -172,42 +177,54 @@ anvi-display-contigs-stats contigs.db
    ```sh
    anvi-estimate-genome-completeness -c /PATH/TO/contigs.db -p /PATH/TO/merged_profiles/PROFILE.db -C METABAT
    ```
+   
    visualization
+   
    ```sh
    module load gcc12-env/12.1.0
    module load miniconda3/4.12.0
    conda activate anvio-8
    anvi-interactive -p /PATH/TO/merged_profiles/PROFILE.db -c /PATH/TO/contigs.db -C YOUR_COLLECTION
   ```
+
 7.4 Bin refinement
    can be done using;
    multiple binners
    reassembly (assemble the clean reads and the MAGs)
    chimera (different contigs binned together) detection with GUNC tool.
    first, create a folder called SUMMARY containing all summary files of the archaea bins created.
-    ```sh
+
+   ```sh
    module load gcc12-env/12.1.0
    module load miniconda3/4.12.0
    conda activate anvio-8
    anvi-summarize -p ? -c ? --list-collections
    anvi-summarize -c ? -p ? -C ? -o ? --just-do-it
-    ```
+
+```
+
 7.4.1 Chimera detection
    activate the gunc environment
-     ```sh
+     
+   ```sh
    module load gcc12-env/12.1.0
    module load miniconda3/4.12.0
    conda activate gunc
-     ```
-     then run the command
-      ```sh
+
+```
+     
+   then run the command
+      
+   ```sh
       cd /PATH/TO/ARCHAEA_BIN_REFINEMENT 
       mkdir GUNC
       for i in *.fa; do gunc run -i "$i" -r /work_beegfs/sunam###/Databases/gunc_db_progenomes2.1.dmnd --out_dir GUNC/"$i" --threads 10 --detailed_output; done
-        ```
+
+```
       
    then.........
    Run a QC on the MAGs again
+
 7.4.2 Manual bin refinement
    As large metagenome assemblies can result in hundreds of bins, pre-select the better ones for manual refinement, e.g. > 70% completeness.
    Before you start, make a copy/backup of your unrefined bins to avoid them from being overwritten.
