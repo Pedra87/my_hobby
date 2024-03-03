@@ -132,7 +132,9 @@ anvi-display-contigs-stats contigs.db
 ```
 
 7. Binning with ANVI'O
+/
 7.1 Preparation of contig data for binning.
+/
 7.1.1 sorting and indexing bam files
    ```sh
    for i in *.bam; do anvi-init-bam $i -o "$i".sorted.bam; done
