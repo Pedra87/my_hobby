@@ -237,6 +237,7 @@ anvi-display-contigs-stats contigs.db
    The interface allows you to categorize contigs into separate bins (selection tool). Unhighlighted contigs are removed when the data is saved.
    You can also evaluate taxonomy and duplicate single copy core genes.
    You can also remove contigs.
+   
 8. Classification of MAGs
       based on Average Nucleotide Identity (ANI) and Alignment fraction once the MAGs are aligned with referece sequnces from a genome database
       ANI: 95% and above- same species with reference organism
@@ -249,9 +250,12 @@ anvi-display-contigs-stats contigs.db
       anvi-summarize -p /PATH/TO/merged_profiles/PROFILE.db -c /PATH/TO/contigs.db --metagenome-mode -o /PATH/TO/SUMMARY_METABAT2 -C METABAT2
       ```
 GENOMICS (pipeline and commands)
+
    1. Quality control
+
   1.1 Short reads (fast qc & fatsp tool)
          ```sh
+         
          #!/bin/bash
          #SBATCH --nodes=1
          #SBATCH --cpus-per-task=32
@@ -279,40 +283,52 @@ GENOMICS (pipeline and commands)
          -O $WORK/genomics/1_short_reads_qc/2_cleaned_reads/241155E_R2_clean.fastq.gz -t 6 -q 25
 
          jobinfo
-         ```
-      Check the quality again with fastqc
+         
+         
+    ```
+
+Check the quality again with fastqc
       1.2 long reads
       Nanoplot tool - checks quality
-      ```sh
+      
+   ```sh
       micromamba activate 02_long_reads_qc
 
           cd $WORK/genomics/0_raw_reads/long_reads/
           NanoPlot --fastq $file -o $output_dir -t 6 --maxlength 40000 --minlength 1000 --plots kde --format png --N50 --dpi 300 --store --raw --tsv_stats --info_in_report
-          ```
+
+```
    filtlong tool- checks quality and trims
-         ```sh
+         
+   ```sh
          filtlong --min_length 1000 --keep_percent 90 $file1 | gzip > sample1_cleaned_filtlong.fastq.gz
          mv sample1_cleaned_filtlong.fastq.gz $output_dir
-         ```
-         Check quality again with Nanoplot
-      2. Hybrid assembly (Unicycler tool)
+   ```
+         
+   Check quality again with Nanoplot
+      
+   2. Hybrid assembly (Unicycler tool)
             Unicycler tool can clean the reads too if not cleaned prior
             assembles the clean Short reads with clean long reads
-            ```sh
+      ```sh
             micromamba activate 03_unicycler
             unicycler -1 $short_read1 -2 $short_read2 -l $long_reads -o $output_dir -t 32
-            ```
+      ```
+   
    3. Quality assessment of assembly
          checks completeness and contamination levels
+   
    3.1 Quast
-         ```sh
+   ```sh
          micromamba activate 04_checkm_quast
          quast.py assembly.fasta --circos -L --conserved-genes-finding --rna-finding\
          --glimmer --use-all-alignments --report-all-metrics -o $output_dir -t 16
-         ```sh
+   ```
       
+   
    3.2 CheckM
-               ```sh
+         
+   ```sh
                micromamba activate 04_checkm_quast
                # Create the output directory if it does not exist
                mkdir -p $checkm_out
@@ -322,37 +338,44 @@ GENOMICS (pipeline and commands)
                checkm tree_qa ./$checkm_out
                checkm qa ./$checkm_out/lineage.ms ./$checkm_out/ -o 1 > ./$checkm_out/Final_table_01.csv
                checkm qa ./c$checkm_out/lineage.ms ./$checkm_out/ -o 2 > ./$checkm_out/final_table_checkm.csv
-               ```
-      3.3 Visualisation of Assemblies
+
+```
+      
+   3.3 Visualisation of Assemblies
                with Bandage on your desktop (if already installed)
-      4. Assembly annotation (Prokka tool)
-                  ```sh
+      
+   4. Assembly annotation (Prokka tool)
+      ```sh
                   micromamba activate 06_prokka
                   # Run Prokka on the file
                   prokka $input/assembly.fasta --outdir $output_dir --kingdom Bacteria --addgenes --cpus 32
-                  ```
+      ```
+       
        5. Classification of genomes (GTDB-TK database)
                      first copy the .fna files of the annotated genomes to the GTDBTK directory
                      then...
-                     ```sh
+          ```sh
                      micromamba activate 07_gtdbtk
                      #run gtdb
                      gtdbtk classify_wf --cpus 12 --genome_dir $input_fna_files --out_dir $output_dir --extension .fna
                      #reduce cpu and increase the ram in bash script in order to have best performance
-                     ```
+          ```
+         
          6. Combining reports (Multiqc tool)
                   multiqc will create the output directory on its own, so dont create it before running it
-                  Run MultiQC to combine all the QC reports at once at the end of the pipeline.
+                  Run MultiQC to combine all the QC reports at the pipeline's end.
                ```sh
                micromamba activate 01_short_reads_qc
                # run multiqc
                multiqc $input_dir -o $output_dir
                ```
+   
    PANGENOMICS
-       1. Comparing genomes with ANVI'O
+       
+   1. Comparing genomes with ANVI'O
                Involves obtaining  consensus from comparing genomes of different organisms fro example strains of the same species.
                dendogram is drawn to show the relationship
-               Usually done at a genus (here you will deal with a bigger number of genomes due to the diffeent species) or species level
+               Usually done at a genus (here you will deal with a bigger number of genomes due to the different species) or species level
                species level is better
                relevance: analyses genome function and functional relationships ANI can be computred and visualised
                 Compared the genomes of 8 Vibrio jasicida strains using Anvio.
